@@ -149,7 +149,7 @@ type Batch = FiberRootBatch & {
   _callbacks: Array<() => mixed> | null,
   _didComplete: boolean,
 };
-
+// React根元素
 function ReactBatch(root: ReactRoot) {
   const expirationTime = DOMRenderer.computeUniqueAsyncExpiration();
   this._expirationTime = expirationTime;
@@ -166,34 +166,34 @@ ReactBatch.prototype.render = function(children: ReactNodeList) {
     this._defer,
     'batch.render: Cannot render a batch that already committed.',
   );
-  this._hasChildren = true;
-  this._children = children;
-  const internalRoot = this._root._internalRoot;
-  const expirationTime = this._expirationTime;
-  const work = new ReactWork();
-  DOMRenderer.updateContainerAtExpirationTime(
+  this._hasChildren = true; // 是否有子元素
+  this._children = children; // 拿到子元素
+  const internalRoot = this._root._internalRoot; // 拿到内部根
+  const expirationTime = this._expirationTime; // 
+  const work = new ReactWork(); // 实例化工作函数
+  DOMRenderer.updateContainerAtExpirationTime( // 更新?
     children,
     internalRoot,
     null,
     expirationTime,
     work._onCommit,
   );
-  return work;
+  return work; // 返回实例
 };
-ReactBatch.prototype.then = function(onComplete: () => mixed) {
-  if (this._didComplete) {
+ReactBatch.prototype.then = function(onComplete: () => mixed) { 
+  if (this._didComplete) { // 是否执行
     onComplete();
     return;
   }
-  let callbacks = this._callbacks;
+  let callbacks = this._callbacks; // 拿到当前的callbacks列表
   if (callbacks === null) {
     callbacks = this._callbacks = [];
   }
-  callbacks.push(onComplete);
+  callbacks.push(onComplete); // 更新callbacks列表
 };
 ReactBatch.prototype.commit = function() {
-  const internalRoot = this._root._internalRoot;
-  let firstBatch = internalRoot.firstBatch;
+  const internalRoot = this._root._internalRoot; // 拿到当前的根
+  let firstBatch = internalRoot.firstBatch; // 获取第一个事务?
   invariant(
     this._defer && firstBatch !== null,
     'batch.commit: Cannot commit a batch multiple times.',
@@ -278,42 +278,43 @@ type Work = {
 };
 
 function ReactWork() {
-  this._callbacks = null;
-  this._didCommit = false;
+  this._callbacks = null; // 回调队列
+  this._didCommit = false; // 是否提交
   // TODO: Avoid need to bind by replacing callbacks in the update queue with
   // list of Work objects.
   this._onCommit = this._onCommit.bind(this);
 }
+  
 ReactWork.prototype.then = function(onCommit: () => mixed): void {
-  if (this._didCommit) {
-    onCommit();
+  if (this._didCommit) { // 如果提交
+    onCommit(); // 执行
     return;
   }
-  let callbacks = this._callbacks;
+  let callbacks = this._callbacks; // 拿到队列
   if (callbacks === null) {
-    callbacks = this._callbacks = [];
+    callbacks = this._callbacks = []; // 初始化
   }
-  callbacks.push(onCommit);
+  callbacks.push(onCommit); // 添加任务
 };
 ReactWork.prototype._onCommit = function(): void {
-  if (this._didCommit) {
+  if (this._didCommit) { // 是否提交
     return;
   }
-  this._didCommit = true;
-  const callbacks = this._callbacks;
+  this._didCommit = true; 
+  const callbacks = this._callbacks; // 拿到任务
   if (callbacks === null) {
     return;
   }
   // TODO: Error handling.
-  for (let i = 0; i < callbacks.length; i++) {
-    const callback = callbacks[i];
-    invariant(
+  for (let i = 0; i < callbacks.length; i++) { // 遍历任务
+    const callback = callbacks[i]; 
+    invariant( // 任务合法判断
       typeof callback === 'function',
       'Invalid argument passed as callback. Expected a function. Instead ' +
         'received: %s',
       callback,
     );
-    callback();
+    callback(); // 执行每个任务
   }
 };
 
